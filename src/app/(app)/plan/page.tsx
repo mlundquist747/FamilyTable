@@ -30,7 +30,7 @@ export default function PlanPage() {
       const res = await fetch("/api/plan/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ members, busyNights, weekStart, days: 5 }),
+        body: JSON.stringify({ members, busyNights, weekStart, days: 7 }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));

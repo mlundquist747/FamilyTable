@@ -77,6 +77,29 @@ describe("buildGroceryList", () => {
     expect(list).toHaveLength(2);
   });
 
+  it("rounds merged quantities up to the nearest whole unit", () => {
+    // 3 medium = 3 servings, base 4 => scale 0.75; 1 onion -> 0.75 -> ceil 1.
+    const members = [member("medium"), member("medium"), member("medium")];
+    const meals: Meal[] = [
+      {
+        ...baseMeal,
+        id: "1",
+        title: "Stew",
+        baseServings: 4,
+        ingredients: [
+          { name: "onion", quantity: 1, unit: "each", section: "Produce" },
+          { name: "garlic", quantity: 30, unit: "clove", section: "Produce" },
+        ],
+      },
+    ];
+    const list = buildGroceryList({ meals, members });
+    const onion = list.find((i) => i.name === "Onion");
+    const garlic = list.find((i) => i.name === "Garlic");
+    expect(onion?.quantity).toBe(1); // 0.75 -> 1
+    expect(garlic?.quantity).toBe(23); // 22.5 -> 23
+    expect(Number.isInteger(onion!.quantity)).toBe(true);
+  });
+
   it("scales quantities by household servings vs base servings", () => {
     // 8 servings of medium vs baseServings 4 => scale 2x
     const members = Array.from({ length: 8 }, () => member("medium"));

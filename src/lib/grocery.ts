@@ -91,7 +91,14 @@ export function buildGroceryList({
     }
   }
 
-  return sortBySection([...merged.values()]);
+  // Round each merged total UP to the nearest whole unit — you can't buy 2.89
+  // avocados. Quantities accumulate precisely above; we ceil only once, here.
+  const items = [...merged.values()].map((item) => ({
+    ...item,
+    quantity: item.quantity != null ? Math.ceil(item.quantity) : undefined,
+  }));
+
+  return sortBySection(items);
 }
 
 /** Group items by section in canonical shopping order, alphabetical within. */

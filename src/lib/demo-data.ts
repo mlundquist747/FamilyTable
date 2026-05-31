@@ -128,6 +128,38 @@ export const demoMeals: Meal[] = [
     ],
     notes: "Manual busy night — intentional leftovers.",
   },
+  {
+    id: "demo-meal-5",
+    date: nextDate(5),
+    title: "Margherita Flatbreads (gluten-free)",
+    description:
+      "Gluten-free flatbreads with crushed tomato, dairy-free mozzarella and fresh basil. Build-your-own toppings bar.",
+    simple: false,
+    baseServings: 3,
+    ingredients: [
+      { name: "gluten-free flatbread", quantity: 3, unit: "each", section: "Bakery" },
+      { name: "crushed tomatoes", quantity: 1, unit: "can", section: "Canned & Jarred" },
+      { name: "dairy-free mozzarella", quantity: 8, unit: "oz", section: "Dairy & Eggs" },
+      { name: "fresh basil", quantity: 1, unit: "bunch", section: "Produce" },
+    ],
+  },
+  {
+    id: "demo-meal-6",
+    date: nextDate(6),
+    title: "Coconut Chickpea Curry",
+    description:
+      "Cozy weekend curry: chickpeas and spinach simmered in coconut milk over rice. Naturally vegan and allergy-friendly.",
+    simple: false,
+    baseServings: 3,
+    ingredients: [
+      { name: "chickpeas", quantity: 2, unit: "can", section: "Canned & Jarred" },
+      { name: "coconut milk", quantity: 1, unit: "can", section: "Canned & Jarred" },
+      { name: "baby spinach", quantity: 6, unit: "oz", section: "Produce" },
+      { name: "jasmine rice", quantity: 1.5, unit: "cups", section: "Pantry" },
+      { name: "curry powder", quantity: 2, unit: "tbsp", section: "Condiments & Spices" },
+      { name: "yellow onion", quantity: 1, unit: "each", section: "Produce" },
+    ],
+  },
 ];
 
 /** ISO date `n` days from today. */
