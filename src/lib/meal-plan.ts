@@ -35,7 +35,6 @@ const mealSchema = z.object({
   simple: z.boolean(),
   baseServings: z.number().positive(),
   ingredients: z.array(ingredientSchema).min(1),
-  recipe: z.array(z.string().min(1)).min(1),
   notes: z.string().optional(),
 });
 
@@ -65,9 +64,8 @@ function buildSystemPrompt(): string {
     "   time, few ingredients, or intentional leftovers) and set simple=true.",
     "6. Provide precise, shoppable ingredient quantities with units, and assign",
     "   each ingredient to the correct US supermarket section.",
-    "7. Provide clear step-by-step cooking instructions in `recipe` as an ordered",
-    "   array of concise steps (each step one short sentence). For simple/busy",
-    "   nights keep it to a handful of quick steps.",
+    "7. Keep each `description` to ONE short, appetizing sentence. Do NOT include",
+    "   cooking steps — recipes are generated separately.",
     "",
     `Valid grocery sections: ${GROCERY_SECTIONS.join(", ")}.`,
     "",
@@ -159,11 +157,6 @@ const EMIT_TOOL: Anthropic.Tool = {
                 required: ["name", "section"],
               },
             },
-            recipe: {
-              type: "array",
-              description: "Ordered step-by-step cooking instructions.",
-              items: { type: "string" },
-            },
             notes: { type: "string" },
           },
           required: [
@@ -173,7 +166,6 @@ const EMIT_TOOL: Anthropic.Tool = {
             "simple",
             "baseServings",
             "ingredients",
-            "recipe",
           ],
         },
       },
@@ -182,10 +174,9 @@ const EMIT_TOOL: Anthropic.Tool = {
   },
 };
 
-// A full week of meals with ingredients AND recipes is sizable JSON; budget
-// generously so the tool call is never truncated mid-stream (which would drop
-// the `meals` array and fail validation).
-const MAX_TOKENS = 16000;
+// The bulk plan is lean (no recipes) so it generates well within the function
+// time budget. Recipes are produced lazily, per meal, via generateRecipe().
+const MAX_TOKENS = 6000;
 const MAX_ATTEMPTS = 2;
 
 /** Generate a validated meal plan. Throws on misconfiguration or invalid output. */
@@ -248,4 +239,97 @@ export async function generateMealPlan(
       ? "The meal plan came back too long to finish. Please try generating again."
       : "The meal planner returned an incomplete plan. Please try again in a moment.",
   );
+}
+
+// ── Lazy per-meal recipe generation ──────────────────────────────────────────
+
+const recipeSchema = z.object({
+  recipe: z.array(z.string().min(1)).min(1),
+});
+
+const RECIPE_TOOL: Anthropic.Tool = {
+  name: "emit_recipe",
+  description: "Emit step-by-step cooking instructions for one meal.",
+  input_schema: {
+    type: "object",
+    properties: {
+      recipe: {
+        type: "array",
+        description: "Ordered cooking steps, each one short sentence.",
+        items: { type: "string" },
+      },
+    },
+    required: ["recipe"],
+  },
+};
+
+export interface GenerateRecipeInput {
+  title: string;
+  description: string;
+  ingredients: { name: string; quantity?: number; unit?: string }[];
+  /** Household dietary constraints to honor in phrasing (optional context). */
+  constraints?: string[];
+}
+
+/**
+ * Generate the recipe for a single meal. Small and fast — called on demand when
+ * a user expands a meal, so the bulk plan stays well under the function limit.
+ */
+export async function generateRecipe(
+  input: GenerateRecipeInput,
+): Promise<string[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set.");
+  const client = new Anthropic({ apiKey });
+
+  const ingredientLines = input.ingredients
+    .map(
+      (i) =>
+        `- ${[i.quantity, i.unit, i.name].filter(Boolean).join(" ").trim()}`,
+    )
+    .join("\n");
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 1500,
+    tools: [RECIPE_TOOL],
+    tool_choice: { type: "tool", name: "emit_recipe" },
+    system: [
+      {
+        type: "text",
+        text:
+          "You are a home-cooking assistant. Write clear, concise cooking " +
+          "instructions as an ordered list of short steps (one sentence each, " +
+          "typically 4–8 steps). Use only the provided ingredients. Honor any " +
+          "stated household dietary constraints. Return ONLY the emit_recipe tool.",
+        cache_control: { type: "ephemeral" },
+      },
+    ],
+    messages: [
+      {
+        role: "user",
+        content: [
+          `Meal: ${input.title}`,
+          input.description ? `Description: ${input.description}` : "",
+          input.constraints?.length
+            ? `Household constraints: ${input.constraints.join(", ")}`
+            : "",
+          "",
+          "Ingredients:",
+          ingredientLines,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      },
+    ],
+  });
+
+  const toolUse = response.content.find(
+    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+  );
+  const parsed = recipeSchema.safeParse(toolUse?.input);
+  if (!parsed.success) {
+    throw new Error("Could not generate a recipe. Please try again.");
+  }
+  return parsed.data.recipe;
 }

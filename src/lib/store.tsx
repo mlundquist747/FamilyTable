@@ -32,6 +32,7 @@ import {
   addMemberAction,
   removeMemberAction,
   saveMealsAction,
+  setMealRecipeAction,
   shareGroceryAction,
   toggleBusyNightAction,
   toggleGroceryItemAction,
@@ -58,6 +59,8 @@ interface StoreContext extends StoreState {
   removeMember: (id: string) => void;
   toggleBusyNight: (date: string, reason?: string) => void;
   setMeals: (meals: Meal[]) => void;
+  /** Attach a lazily generated recipe to a meal (persists in cloud mode). */
+  setMealRecipe: (mealId: string, recipe: string[]) => void;
   groceryList: GroceryItem[];
   toggleGroceryItem: (name: string) => void;
   /** Returns the share token (demo payload or DB token) for `/share/<token>`. */
@@ -216,6 +219,19 @@ export function StoreProvider({
     }
   };
 
+  const setMealRecipe: StoreContext["setMealRecipe"] = (mealId, recipe) => {
+    // Update locally in both modes; persist to the saved plan in cloud mode.
+    setState((s) => ({
+      ...s,
+      meals: s.meals.map((m) => (m.id === mealId ? { ...m, recipe } : m)),
+    }));
+    if (mode === "cloud") {
+      void setMealRecipeAction(mealId, recipe).catch((e) =>
+        console.error("Recipe sync failed:", e),
+      );
+    }
+  };
+
   const toggleGroceryItem: StoreContext["toggleGroceryItem"] = (name) => {
     // Optimistic in both modes; cloud persists in the background.
     setState((s) => ({
@@ -265,6 +281,7 @@ export function StoreProvider({
     removeMember,
     toggleBusyNight,
     setMeals,
+    setMealRecipe,
     groceryList,
     toggleGroceryItem,
     shareGroceryList,

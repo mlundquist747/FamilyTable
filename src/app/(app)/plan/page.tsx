@@ -4,11 +4,17 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { analyzeMeal } from "@/lib/allergens";
-import { ALLERGEN_LABELS, Meal, MealSafetyReport } from "@/lib/types";
+import {
+  ALLERGEN_LABELS,
+  FamilyMember,
+  Meal,
+  MealSafetyReport,
+} from "@/lib/types";
 import { SafetyBadge, SimpleBadge } from "@/components/Badges";
 
 export default function PlanPage() {
-  const { members, meals, busyNights, setMeals, toggleBusyNight } = useStore();
+  const { members, meals, busyNights, setMeals, setMealRecipe, toggleBusyNight } =
+    useStore();
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [demoNote, setDemoNote] = useState(false);
@@ -86,9 +92,11 @@ export default function PlanPage() {
           <MealCard
             key={meal.id}
             meal={meal}
+            members={members}
             report={analyzeMeal(meal, members)}
             busy={busySet.has(meal.date)}
             onToggleBusy={() => toggleBusyNight(meal.date, "Manual flag")}
+            onRecipe={setMealRecipe}
           />
         ))}
       </div>
@@ -98,20 +106,62 @@ export default function PlanPage() {
 
 function MealCard({
   meal,
+  members,
   report,
   busy,
   onToggleBusy,
+  onRecipe,
 }: {
   meal: Meal;
+  members: FamilyMember[];
   report: MealSafetyReport;
   busy: boolean;
   onToggleBusy: () => void;
+  onRecipe: (mealId: string, recipe: string[]) => void;
 }) {
   const day = new Date(meal.date + "T12:00:00").toLocaleDateString(undefined, {
     weekday: "long",
     month: "short",
     day: "numeric",
   });
+
+  const [loadingRecipe, setLoadingRecipe] = useState(false);
+  const [recipeError, setRecipeError] = useState<string | null>(null);
+  const hasRecipe = !!meal.recipe && meal.recipe.length > 0;
+
+  async function ensureRecipe() {
+    if (hasRecipe || loadingRecipe) return;
+    setLoadingRecipe(true);
+    setRecipeError(null);
+    try {
+      const res = await fetch("/api/recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          meal: {
+            title: meal.title,
+            description: meal.description,
+            ingredients: meal.ingredients.map((i) => ({
+              name: i.name,
+              quantity: i.quantity,
+              unit: i.unit,
+            })),
+          },
+          members,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Could not load the recipe.");
+      }
+      const data = await res.json();
+      onRecipe(meal.id, data.recipe as string[]);
+    } catch (e) {
+      setRecipeError(e instanceof Error ? e.message : "Could not load the recipe.");
+    } finally {
+      setLoadingRecipe(false);
+    }
+  }
 
   return (
     <div className="card overflow-hidden">
@@ -161,7 +211,12 @@ function MealCard({
           </div>
         )}
 
-        <details className="mt-3 group">
+        <details
+          className="mt-3 group"
+          onToggle={(e) => {
+            if ((e.currentTarget as HTMLDetailsElement).open) ensureRecipe();
+          }}
+        >
           <summary className="cursor-pointer text-sm font-medium text-sage-600 list-none">
             <span className="group-open:hidden">Show more ▾</span>
             <span className="hidden group-open:inline">Show less ▴</span>
@@ -181,22 +236,38 @@ function MealCard({
             ))}
           </ul>
 
-          {meal.recipe && meal.recipe.length > 0 && (
-            <>
-              <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink/45">
-                Recipe
-              </h4>
-              <ol className="mt-2 space-y-2 text-sm text-ink/70">
-                {meal.recipe.map((step, i) => (
-                  <li key={i} className="flex gap-2.5">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sage-100 text-xs font-semibold text-sage-700">
-                      {i + 1}
-                    </span>
-                    <span className="pt-0.5">{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </>
+          <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink/45">
+            Recipe
+          </h4>
+          {hasRecipe ? (
+            <ol className="mt-2 space-y-2 text-sm text-ink/70">
+              {meal.recipe!.map((step, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sage-100 text-xs font-semibold text-sage-700">
+                    {i + 1}
+                  </span>
+                  <span className="pt-0.5">{step}</span>
+                </li>
+              ))}
+            </ol>
+          ) : loadingRecipe ? (
+            <p className="mt-2 text-sm text-ink/50 animate-pulse">
+              ✨ Writing the recipe…
+            </p>
+          ) : recipeError ? (
+            <div className="mt-2 text-sm">
+              <p className="text-clay-600">{recipeError}</p>
+              <button
+                onClick={ensureRecipe}
+                className="btn-ghost mt-1 text-sm px-0"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
+            <button onClick={ensureRecipe} className="btn-secondary mt-2 text-sm">
+              ✨ Generate recipe
+            </button>
           )}
 
           {meal.notes && (

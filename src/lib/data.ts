@@ -267,6 +267,27 @@ export async function saveMealPlan(
   }
 }
 
+/** Attach a lazily generated recipe to one meal in the saved plan. */
+export async function setMealRecipeRow(
+  householdId: string,
+  mealId: string,
+  recipe: string[],
+): Promise<void> {
+  const supabase = await createClient();
+  const { data: plan } = await supabase
+    .from("meal_plans")
+    .select("id, meals")
+    .eq("household_id", householdId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!plan) return;
+  const meals = (plan.meals as Meal[]).map((m) =>
+    m.id === mealId ? { ...m, recipe } : m,
+  );
+  await supabase.from("meal_plans").update({ meals }).eq("id", plan.id);
+}
+
 /** Toggle one grocery item's checked state on the saved list. */
 export async function toggleGroceryItemRow(
   householdId: string,
