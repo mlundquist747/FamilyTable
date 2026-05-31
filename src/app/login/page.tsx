@@ -6,9 +6,12 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
   const configured = isSupabaseConfigured();
 
-  async function signIn() {
+  async function signInGoogle() {
     setError(null);
     try {
       const supabase = createClient();
@@ -27,6 +30,25 @@ export default function LoginPage() {
     }
   }
 
+  async function signInEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) setError(error.message);
+      else setSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Sign-in failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="min-h-screen grid place-items-center px-5">
       <div className="card w-full max-w-sm p-7 text-center">
@@ -38,19 +60,50 @@ export default function LoginPage() {
           Sign in to plan dinners for your whole household.
         </p>
 
-        {configured ? (
-          <button className="btn-primary w-full mt-6" onClick={signIn}>
-            Continue with Google
-          </button>
-        ) : (
+        {!configured ? (
           <div className="mt-6 space-y-3">
             <p className="rounded-xl bg-sage-50 p-3 text-xs text-ink/60">
-              Google sign-in isn&apos;t configured in this environment. Explore
-              the full app in demo mode.
+              Sign-in isn&apos;t configured in this environment. Explore the full
+              app in demo mode.
             </p>
             <Link href="/dashboard" className="btn-primary w-full">
               Enter demo
             </Link>
+          </div>
+        ) : sent ? (
+          <div className="mt-6 rounded-xl bg-sage-50 p-4 text-sm text-sage-700">
+            ✓ Check your email — we sent a magic sign-in link to{" "}
+            <strong>{email}</strong>.
+          </div>
+        ) : (
+          <div className="mt-6 space-y-4">
+            <button className="btn-primary w-full" onClick={signInGoogle}>
+              Continue with Google
+            </button>
+
+            <div className="flex items-center gap-3 text-xs text-ink/40">
+              <span className="h-px flex-1 bg-sage-100" />
+              or
+              <span className="h-px flex-1 bg-sage-100" />
+            </div>
+
+            <form onSubmit={signInEmail} className="space-y-2 text-left">
+              <input
+                type="email"
+                required
+                className="input"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="btn-secondary w-full"
+                disabled={busy || !email}
+              >
+                {busy ? "Sending…" : "Email me a magic link"}
+              </button>
+            </form>
           </div>
         )}
 

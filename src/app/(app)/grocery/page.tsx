@@ -3,35 +3,34 @@
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { groupBySection } from "@/lib/grocery";
-import { encodeListPayload } from "@/lib/share";
 
 export default function GroceryPage() {
-  const { groceryList, toggleGroceryItem, householdName } = useStore();
+  const { groceryList, toggleGroceryItem, shareGroceryList } = useStore();
   const groups = groupBySection(groceryList);
   const total = groceryList.length;
   const checked = groceryList.filter((i) => i.checked).length;
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
-  function share() {
-    const payload = encodeListPayload({
-      householdName,
-      items: groceryList.map(({ name, section, quantity, unit }) => ({
-        name,
-        section,
-        quantity,
-        unit,
-      })),
-    });
-    const url = `${window.location.origin}/share/${payload}`;
-    setShareUrl(url);
-    navigator.clipboard?.writeText(url).then(
-      () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      },
-      () => {},
-    );
+  async function share() {
+    setSharing(true);
+    try {
+      const token = await shareGroceryList();
+      const url = `${window.location.origin}/share/${token}`;
+      setShareUrl(url);
+      navigator.clipboard?.writeText(url).then(
+        () => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        },
+        () => {},
+      );
+    } catch {
+      setShareUrl(null);
+    } finally {
+      setSharing(false);
+    }
   }
 
   return (
@@ -43,8 +42,12 @@ export default function GroceryPage() {
             {checked} / {total} items · {groups.length} aisles
           </p>
         </div>
-        <button className="btn-primary" onClick={share} disabled={total === 0}>
-          🔗 Share
+        <button
+          className="btn-primary"
+          onClick={share}
+          disabled={total === 0 || sharing}
+        >
+          {sharing ? "Sharing…" : "🔗 Share"}
         </button>
       </div>
 

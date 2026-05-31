@@ -173,3 +173,17 @@ export interface BusyNight {
   source: "calendar" | "manual";
   reason?: string;
 }
+
+/**
+ * Serializable snapshot of a household's full working state. Used to hydrate
+ * the client store from the server (cloud mode) and returned by server actions
+ * after a mutation so the client can reconcile to authoritative state.
+ */
+export interface HouseholdSnapshot {
+  householdName: string;
+  members: FamilyMember[];
+  busyNights: BusyNight[];
+  meals: Meal[];
+  /** Checked state of grocery items, keyed by display name. */
+  groceryChecked: Record<string, boolean>;
+}

@@ -1,18 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
-// Exchanges the OAuth code for a session, then redirects into the app.
+// Completes sign-in for both flows, then redirects into the app:
+//   • OAuth / PKCE → exchange `code` for a session
+//   • Email magic link → verify `token_hash` + `type`
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/dashboard";
 
+  const supabase = await createClient();
+
   if (code) {
-    const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+    if (!error) return NextResponse.redirect(`${origin}${next}`);
+  } else if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    });
+    if (!error) return NextResponse.redirect(`${origin}${next}`);
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth`);
