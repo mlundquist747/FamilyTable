@@ -182,6 +182,12 @@ const EMIT_TOOL: Anthropic.Tool = {
   },
 };
 
+// A full week of meals with ingredients AND recipes is sizable JSON; budget
+// generously so the tool call is never truncated mid-stream (which would drop
+// the `meals` array and fail validation).
+const MAX_TOKENS = 16000;
+const MAX_ATTEMPTS = 2;
+
 /** Generate a validated meal plan. Throws on misconfiguration or invalid output. */
 export async function generateMealPlan(
   input: GenerateMealPlanInput,
@@ -192,32 +198,54 @@ export async function generateMealPlan(
   }
   const client = new Anthropic({ apiKey });
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 8192,
-    tools: [EMIT_TOOL],
-    tool_choice: { type: "tool", name: "emit_meal_plan" },
-    system: [
-      {
-        type: "text",
-        text: buildSystemPrompt(),
-        // Cache the static system prompt across requests.
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [{ role: "user", content: buildUserPrompt(input) }],
-  });
+  let lastIssue = "";
 
-  const toolUse = response.content.find(
-    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
-  );
-  if (!toolUse) {
-    throw new Error("Model did not return a meal plan.");
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      tools: [EMIT_TOOL],
+      tool_choice: { type: "tool", name: "emit_meal_plan" },
+      system: [
+        {
+          type: "text",
+          text: buildSystemPrompt(),
+          // Cache the static system prompt across requests.
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [{ role: "user", content: buildUserPrompt(input) }],
+    });
+
+    // If the model ran out of room, its tool JSON is incomplete — retry rather
+    // than surfacing a confusing partial-parse error.
+    if (response.stop_reason === "max_tokens") {
+      lastIssue = "truncated";
+      continue;
+    }
+
+    const toolUse = response.content.find(
+      (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+    );
+    if (!toolUse) {
+      lastIssue = "no_tool_use";
+      continue;
+    }
+
+    const parsed = planSchema.safeParse(toolUse.input);
+    if (parsed.success) {
+      return parsed.data.meals.map((m, i) => ({
+        id: `meal-${input.weekStart}-${i}`,
+        ...m,
+      }));
+    }
+    lastIssue = "invalid_shape";
   }
 
-  const parsed = planSchema.parse(toolUse.input);
-  return parsed.meals.map((m, i) => ({
-    id: `meal-${input.weekStart}-${i}`,
-    ...m,
-  }));
+  // Exhausted retries — surface a friendly, actionable message.
+  throw new Error(
+    lastIssue === "truncated"
+      ? "The meal plan came back too long to finish. Please try generating again."
+      : "The meal planner returned an incomplete plan. Please try again in a moment.",
+  );
 }
