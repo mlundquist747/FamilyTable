@@ -119,6 +119,8 @@ export interface Meal {
   simple: boolean;
   baseServings: number;
   ingredients: Ingredient[];
+  /** Ordered, step-by-step cooking instructions. */
+  recipe?: string[];
   /** Free-text prep notes. */
   notes?: string;
 }

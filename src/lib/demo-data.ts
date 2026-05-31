@@ -61,6 +61,13 @@ export const demoMeals: Meal[] = [
       { name: "fresh ginger", quantity: 1, unit: "knob", section: "Produce" },
       { name: "sesame oil", quantity: 1, unit: "tbsp", section: "Condiments & Spices" },
     ],
+    recipe: [
+      "Press the tofu for 15 minutes, then cube it.",
+      "Cook the jasmine rice according to package directions.",
+      "Toss broccoli and carrots with sesame oil; roast at 425°F for 20 minutes.",
+      "Pan-fry the tofu until golden, then glaze with tamari and grated ginger.",
+      "Build bowls with rice, roasted veg and tofu; drizzle any remaining glaze.",
+    ],
     notes: "Press tofu 15 min for max crispiness.",
   },
   {
@@ -79,6 +86,13 @@ export const demoMeals: Meal[] = [
       { name: "lime", quantity: 2, unit: "each", section: "Produce" },
       { name: "cumin", quantity: 1, unit: "tsp", section: "Condiments & Spices" },
     ],
+    recipe: [
+      "Cube the sweet potato, toss with cumin and oil, and roast at 425°F for 25 minutes.",
+      "Warm the black beans with a pinch of salt and a splash of their liquid.",
+      "Mash avocado with lime juice and salt to make the crema.",
+      "Char the corn tortillas over a flame or in a dry skillet.",
+      "Fill tortillas with beans and sweet potato; top with avocado-lime crema.",
+    ],
   },
   {
     id: "demo-meal-2",
@@ -93,6 +107,12 @@ export const demoMeals: Meal[] = [
       { name: "basil pesto (dairy-free)", quantity: 0.5, unit: "cup", section: "Condiments & Spices" },
       { name: "cherry tomatoes", quantity: 1, unit: "pint", section: "Produce" },
       { name: "cannellini beans", quantity: 1, unit: "can", section: "Canned & Jarred" },
+    ],
+    recipe: [
+      "Boil the gluten-free penne until al dente, then drain.",
+      "Halve the cherry tomatoes and rinse the cannellini beans.",
+      "Toss the hot pasta with pesto, tomatoes and beans.",
+      "Season to taste and serve.",
     ],
     notes: "Busy night — minimal prep, one pot.",
   },
@@ -111,6 +131,13 @@ export const demoMeals: Meal[] = [
       { name: "lemon", quantity: 2, unit: "each", section: "Produce" },
       { name: "olive oil", quantity: 3, unit: "tbsp", section: "Condiments & Spices" },
     ],
+    recipe: [
+      "Heat oven to 425°F.",
+      "Halve the baby potatoes and trim the green beans.",
+      "Toss chicken and potatoes with olive oil, lemon, salt and herbs on a sheet pan.",
+      "Roast 20 minutes, add green beans, then roast 15 minutes more until chicken reaches 165°F.",
+      "Reserve a veg-and-chickpea tray (no chicken) for Ava.",
+    ],
     notes: "Reserve a tray of veg + chickpeas for Ava (vegetarian).",
   },
   {
@@ -125,6 +152,12 @@ export const demoMeals: Meal[] = [
       { name: "leftover rice", quantity: 2, unit: "cups", section: "Pantry" },
       { name: "mixed greens", quantity: 5, unit: "oz", section: "Produce" },
       { name: "black beans", quantity: 1, unit: "can", section: "Canned & Jarred" },
+    ],
+    recipe: [
+      "Reheat the leftover rice with a splash of water.",
+      "Warm the black beans.",
+      "Pile rice, beans and any leftover roasted veg over a bed of mixed greens.",
+      "Add a favorite sauce or dressing and serve.",
     ],
     notes: "Manual busy night — intentional leftovers.",
   },
@@ -142,6 +175,13 @@ export const demoMeals: Meal[] = [
       { name: "dairy-free mozzarella", quantity: 8, unit: "oz", section: "Dairy & Eggs" },
       { name: "fresh basil", quantity: 1, unit: "bunch", section: "Produce" },
     ],
+    recipe: [
+      "Heat oven to 450°F.",
+      "Spread crushed tomatoes over each flatbread and season with salt.",
+      "Scatter dairy-free mozzarella on top.",
+      "Bake 8–10 minutes until bubbly and the edges crisp.",
+      "Finish with torn fresh basil and slice.",
+    ],
   },
   {
     id: "demo-meal-6",
@@ -158,6 +198,13 @@ export const demoMeals: Meal[] = [
       { name: "jasmine rice", quantity: 1.5, unit: "cups", section: "Pantry" },
       { name: "curry powder", quantity: 2, unit: "tbsp", section: "Condiments & Spices" },
       { name: "yellow onion", quantity: 1, unit: "each", section: "Produce" },
+    ],
+    recipe: [
+      "Start the jasmine rice cooking.",
+      "Sauté the diced onion until soft, then stir in the curry powder for 30 seconds.",
+      "Add the chickpeas and coconut milk; simmer 10 minutes.",
+      "Stir in the spinach until wilted and season to taste.",
+      "Serve the curry over the rice.",
     ],
   },
 ];

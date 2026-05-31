@@ -163,9 +163,13 @@ function MealCard({
 
         <details className="mt-3 group">
           <summary className="cursor-pointer text-sm font-medium text-sage-600 list-none">
-            <span className="group-open:hidden">Show ingredients ▾</span>
-            <span className="hidden group-open:inline">Hide ingredients ▴</span>
+            <span className="group-open:hidden">Show more ▾</span>
+            <span className="hidden group-open:inline">Show less ▴</span>
           </summary>
+
+          <h4 className="mt-3 text-xs font-semibold uppercase tracking-wide text-ink/45">
+            Ingredients
+          </h4>
           <ul className="mt-2 space-y-1 text-sm text-ink/70">
             {meal.ingredients.map((ing, i) => (
               <li key={i} className="flex justify-between">
@@ -176,8 +180,27 @@ function MealCard({
               </li>
             ))}
           </ul>
+
+          {meal.recipe && meal.recipe.length > 0 && (
+            <>
+              <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink/45">
+                Recipe
+              </h4>
+              <ol className="mt-2 space-y-2 text-sm text-ink/70">
+                {meal.recipe.map((step, i) => (
+                  <li key={i} className="flex gap-2.5">
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sage-100 text-xs font-semibold text-sage-700">
+                      {i + 1}
+                    </span>
+                    <span className="pt-0.5">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+
           {meal.notes && (
-            <p className="mt-2 text-xs text-ink/50 italic">{meal.notes}</p>
+            <p className="mt-3 text-xs text-ink/50 italic">{meal.notes}</p>
           )}
         </details>
       </div>

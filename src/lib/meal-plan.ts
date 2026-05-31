@@ -35,6 +35,7 @@ const mealSchema = z.object({
   simple: z.boolean(),
   baseServings: z.number().positive(),
   ingredients: z.array(ingredientSchema).min(1),
+  recipe: z.array(z.string().min(1)).min(1),
   notes: z.string().optional(),
 });
 
@@ -64,6 +65,9 @@ function buildSystemPrompt(): string {
     "   time, few ingredients, or intentional leftovers) and set simple=true.",
     "6. Provide precise, shoppable ingredient quantities with units, and assign",
     "   each ingredient to the correct US supermarket section.",
+    "7. Provide clear step-by-step cooking instructions in `recipe` as an ordered",
+    "   array of concise steps (each step one short sentence). For simple/busy",
+    "   nights keep it to a handful of quick steps.",
     "",
     `Valid grocery sections: ${GROCERY_SECTIONS.join(", ")}.`,
     "",
@@ -155,6 +159,11 @@ const EMIT_TOOL: Anthropic.Tool = {
                 required: ["name", "section"],
               },
             },
+            recipe: {
+              type: "array",
+              description: "Ordered step-by-step cooking instructions.",
+              items: { type: "string" },
+            },
             notes: { type: "string" },
           },
           required: [
@@ -164,6 +173,7 @@ const EMIT_TOOL: Anthropic.Tool = {
             "simple",
             "baseServings",
             "ingredients",
+            "recipe",
           ],
         },
       },
@@ -184,7 +194,7 @@ export async function generateMealPlan(
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 8192,
     tools: [EMIT_TOOL],
     tool_choice: { type: "tool", name: "emit_meal_plan" },
     system: [
