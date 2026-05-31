@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-cream text-ink antialiased;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white border border-sage-100 shadow-sm;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+      text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50
+      disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-sage-600 text-white hover:bg-sage-700;
+  }
+  .btn-secondary {
+    @apply btn bg-sage-50 text-sage-700 hover:bg-sage-100 border border-sage-200;
+  }
+  .btn-ghost {
+    @apply btn text-sage-700 hover:bg-sage-50;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs
+      font-medium;
+  }
+  .input {
+    @apply w-full rounded-xl border border-sage-200 bg-white px-3.5 py-2.5
+      text-sm outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100;
+  }
+  .label {
+    @apply block text-sm font-medium text-ink/80 mb-1.5;
+  }
+}
