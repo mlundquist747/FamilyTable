@@ -110,7 +110,9 @@ export async function getHouseholdData(
   const supabase = await createClient();
 
   const [householdRes, membersRes, busyRes, planRes] = await Promise.all([
-    supabase.from("households").select("name").eq("id", householdId).single(),
+    // Select the whole row so a missing `prefer_leftovers` column (i.e. the
+    // migration hasn't been run yet) degrades gracefully instead of erroring.
+    supabase.from("households").select("*").eq("id", householdId).single(),
     supabase
       .from("members")
       .select("*")
@@ -152,7 +154,20 @@ export async function getHouseholdData(
     busyNights: (busyRes.data ?? []) as BusyNight[],
     meals,
     groceryChecked,
+    preferLeftovers: !!householdRes.data?.prefer_leftovers,
   };
+}
+
+/** Set the household's leftover preference. */
+export async function setPreferLeftoversRow(
+  householdId: string,
+  value: boolean,
+): Promise<void> {
+  const supabase = await createClient();
+  await supabase
+    .from("households")
+    .update({ prefer_leftovers: value })
+    .eq("id", householdId);
 }
 
 // ── Mutations ────────────────────────────────────────────────────────────────

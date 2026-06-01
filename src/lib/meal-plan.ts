@@ -34,7 +34,11 @@ const mealSchema = z.object({
   description: z.string(),
   simple: z.boolean(),
   baseServings: z.number().positive(),
-  ingredients: z.array(ingredientSchema).min(1),
+  // Leftover nights legitimately have no ingredients of their own.
+  ingredients: z.array(ingredientSchema),
+  leftover: z.boolean().optional(),
+  cooksFor: z.number().optional(),
+  leftoverOf: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -47,6 +51,8 @@ export interface GenerateMealPlanInput {
   weekStart: string; // ISO date of first dinner
   days: number; // 5–7
   busyNights: BusyNight[];
+  /** When true, minimize cooking with batch meals + leftover nights. */
+  preferLeftovers?: boolean;
 }
 
 function buildSystemPrompt(): string {
@@ -74,8 +80,9 @@ function buildSystemPrompt(): string {
 }
 
 function buildUserPrompt(input: GenerateMealPlanInput): string {
-  const { members, weekStart, days, busyNights } = input;
+  const { members, weekStart, days, busyNights, preferLeftovers } = input;
   const constraints = aggregateConstraints(members);
+  const cookNights = Math.max(3, Math.ceil(days * 0.57)); // ~4 of 7
 
   const roster = members
     .map((m) => {
@@ -124,6 +131,21 @@ function buildUserPrompt(input: GenerateMealPlanInput): string {
     "BUSY NIGHTS (make these simple, simple=true):",
     busyList,
     "",
+    preferLeftovers
+      ? [
+          "LEFTOVERS MODE — the household wants to minimize cooking:",
+          `- Cook only about ${cookNights} dinners across the ${days} nights.`,
+          "- For each COOKED dinner, set `cooksFor` to how many nights that batch",
+          "  feeds (e.g. 2). List ingredient quantities for ONE household-sized",
+          "  batch (baseServings) — do NOT pre-multiply; the app scales by cooksFor.",
+          "- Fill the OTHER nights with LEFTOVER dinners: set leftover=true,",
+          "  cooksFor=0, ingredients=[], title \"Leftovers: <cooked meal>\",",
+          "  leftoverOf set to that cooked meal's title, and a one-line description.",
+          `- The cooksFor values of the cooked dinners MUST sum to ${days}.`,
+          "- Place each leftover night on a date AFTER the meal it reuses.",
+          "",
+        ].join("\n")
+      : "",
     `Assign one dinner per date from ${weekStart} for ${days} days.`,
   ].join("\n");
 }
@@ -156,6 +178,19 @@ const EMIT_TOOL: Anthropic.Tool = {
                 },
                 required: ["name", "section"],
               },
+            },
+            leftover: {
+              type: "boolean",
+              description: "True if this night reheats an earlier cooked meal.",
+            },
+            cooksFor: {
+              type: "number",
+              description:
+                "How many nights a cooked batch feeds (1 normally; 0 for leftover nights).",
+            },
+            leftoverOf: {
+              type: "string",
+              description: "Title of the cooked meal a leftover night reuses.",
             },
             notes: { type: "string" },
           },

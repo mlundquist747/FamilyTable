@@ -33,6 +33,7 @@ import {
   removeMemberAction,
   saveMealsAction,
   setMealRecipeAction,
+  setPreferLeftoversAction,
   shareGroceryAction,
   toggleBusyNightAction,
   toggleGroceryItemAction,
@@ -49,6 +50,7 @@ interface StoreState {
   busyNights: BusyNight[];
   meals: Meal[];
   groceryChecked: Record<string, boolean>;
+  preferLeftovers: boolean;
 }
 
 interface StoreContext extends StoreState {
@@ -61,6 +63,7 @@ interface StoreContext extends StoreState {
   setMeals: (meals: Meal[]) => void;
   /** Attach a lazily generated recipe to a meal (persists in cloud mode). */
   setMealRecipe: (mealId: string, recipe: string[]) => void;
+  setPreferLeftovers: (value: boolean) => void;
   groceryList: GroceryItem[];
   toggleGroceryItem: (name: string) => void;
   /** Returns the share token (demo payload or DB token) for `/share/<token>`. */
@@ -76,6 +79,7 @@ const demoInitial: StoreState = {
   busyNights: demoBusyNights,
   meals: demoMeals,
   groceryChecked: {},
+  preferLeftovers: false,
 };
 
 function uid(): string {
@@ -89,6 +93,7 @@ function snapshotToState(s: HouseholdSnapshot): StoreState {
     busyNights: s.busyNights,
     meals: s.meals,
     groceryChecked: s.groceryChecked,
+    preferLeftovers: s.preferLeftovers,
   };
 }
 
@@ -219,6 +224,15 @@ export function StoreProvider({
     }
   };
 
+  const setPreferLeftovers: StoreContext["setPreferLeftovers"] = (value) => {
+    setState((s) => ({ ...s, preferLeftovers: value }));
+    if (mode === "cloud") {
+      void setPreferLeftoversAction(value).catch((e) =>
+        console.error("Preference sync failed:", e),
+      );
+    }
+  };
+
   const setMealRecipe: StoreContext["setMealRecipe"] = (mealId, recipe) => {
     // Update locally in both modes; persist to the saved plan in cloud mode.
     setState((s) => ({
@@ -282,6 +296,7 @@ export function StoreProvider({
     toggleBusyNight,
     setMeals,
     setMealRecipe,
+    setPreferLeftovers,
     groceryList,
     toggleGroceryItem,
     shareGroceryList,

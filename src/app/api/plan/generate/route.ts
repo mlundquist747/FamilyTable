@@ -13,6 +13,7 @@ const bodySchema = z.object({
   busyNights: z.array(z.any()).default([]),
   weekStart: z.string().optional(),
   days: z.number().min(5).max(7).default(7),
+  preferLeftovers: z.boolean().default(false),
 });
 
 export async function POST(req: NextRequest) {
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
         weekStart,
         days: parsed.days,
         busyNights,
+        preferLeftovers: parsed.preferLeftovers,
       });
     } catch (err) {
       return NextResponse.json(
@@ -49,6 +51,7 @@ export async function POST(req: NextRequest) {
     // even without an API key configured.
     demo = true;
     meals = reDateDemoPlan(weekStart, parsed.days, busyNights);
+    if (parsed.preferLeftovers) meals = applyDemoLeftovers(meals);
   }
 
   // Critical safeguard: the deterministic engine independently re-checks every
@@ -75,5 +78,31 @@ function reDateDemoPlan(
       date,
       simple: m.simple || busySet.has(date),
     };
+  });
+}
+
+/**
+ * Demo-mode transform: cook on even days, eat leftovers on odd days, so the
+ * sample plan reflects the leftover preference even without the AI.
+ */
+function applyDemoLeftovers(meals: Meal[]): Meal[] {
+  return meals.map((m, i) => {
+    if (i % 2 === 1 && i > 0) {
+      const source = meals[i - 1];
+      return {
+        ...m,
+        title: `Leftovers: ${source.title}`,
+        description: `Reheat and enjoy last night's ${source.title}.`,
+        ingredients: [],
+        recipe: undefined,
+        leftover: true,
+        cooksFor: 0,
+        leftoverOf: source.title,
+        simple: true,
+      };
+    }
+    // Cooked night: feeds itself plus the following leftover night (if any).
+    const feedsNext = i + 1 < meals.length && (i + 1) % 2 === 1;
+    return { ...m, leftover: false, cooksFor: feedsNext ? 2 : 1 };
   });
 }

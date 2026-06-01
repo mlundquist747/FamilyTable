@@ -123,6 +123,16 @@ export interface Meal {
   recipe?: string[];
   /** Free-text prep notes. */
   notes?: string;
+  /**
+   * Leftover-planning fields (PRD §5.2 leftovers optimization).
+   * `leftover` marks a night that reheats an earlier cooked meal — it adds no
+   * new groceries. `cooksFor` is how many nights a cooked batch feeds (default
+   * 1); the grocery builder multiplies that meal's ingredients by it.
+   */
+  leftover?: boolean;
+  cooksFor?: number;
+  /** Title of the cooked meal a leftover night reuses. */
+  leftoverOf?: string;
 }
 
 /** Per-member allergen finding for a single meal. */
@@ -188,4 +198,6 @@ export interface HouseholdSnapshot {
   meals: Meal[];
   /** Checked state of grocery items, keyed by display name. */
   groceryChecked: Record<string, boolean>;
+  /** Household preference: minimize cooking by planning leftover nights. */
+  preferLeftovers: boolean;
 }

@@ -6,7 +6,14 @@ import { aggregateConstraints, analyzePlan } from "@/lib/allergens";
 import { AllergenChip, DietChip } from "@/components/Badges";
 
 export default function DashboardPage() {
-  const { householdName, members, meals, busyNights } = useStore();
+  const {
+    householdName,
+    members,
+    meals,
+    busyNights,
+    preferLeftovers,
+    setPreferLeftovers,
+  } = useStore();
   const constraints = aggregateConstraints(members);
   const reports = analyzePlan(meals, members);
   const unsafeCount = Object.values(reports).filter((r) => !r.safe).length;
@@ -70,8 +77,9 @@ export default function DashboardPage() {
         </h2>
         {unsafeCount > 0 ? (
           <p className="text-sm text-clay-600 mt-1">
-            {unsafeCount} meal{unsafeCount > 1 ? "s" : ""} need a closer look.
-            The safety engine flagged potential allergen or dietary conflicts.
+            {unsafeCount} meal{unsafeCount > 1 ? "s" : ""}{" "}
+            {unsafeCount > 1 ? "need" : "needs"} a closer look. The safety engine
+            flagged potential allergen or dietary conflicts.
           </p>
         ) : (
           <p className="text-sm text-sage-700 mt-1">
@@ -119,6 +127,37 @@ export default function DashboardPage() {
             tab.
           </p>
         )}
+      </section>
+
+      {/* Preferences */}
+      <section className="card p-5">
+        <h2 className="font-semibold flex items-center gap-2">⚙️ Preferences</h2>
+        <button
+          type="button"
+          onClick={() => setPreferLeftovers(!preferLeftovers)}
+          className="mt-3 flex w-full items-center justify-between text-left"
+        >
+          <div className="pr-4">
+            <p className="font-medium flex items-center gap-1.5">
+              ♻️ Prefer leftovers
+            </p>
+            <p className="text-xs text-ink/55 mt-0.5">
+              Cook about 4 nights a week and repeat meals as leftovers the other
+              nights. Takes effect the next time you generate a plan.
+            </p>
+          </div>
+          <span
+            className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+              preferLeftovers ? "bg-sage-600" : "bg-sage-200"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                preferLeftovers ? "left-[22px]" : "left-0.5"
+              }`}
+            />
+          </span>
+        </button>
       </section>
 
       <div className="grid grid-cols-2 gap-3">

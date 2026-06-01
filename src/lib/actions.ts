@@ -18,6 +18,7 @@ import {
   insertMember,
   saveMealPlan,
   setMealRecipeRow,
+  setPreferLeftoversRow,
   toggleBusyNightRow,
   toggleGroceryItemRow,
   updateMemberRow,
@@ -87,6 +88,11 @@ export async function setMealRecipeAction(
 ): Promise<void> {
   const hid = await requireHouseholdId();
   await setMealRecipeRow(hid, mealId, recipe);
+}
+
+export async function setPreferLeftoversAction(value: boolean): Promise<void> {
+  const hid = await requireHouseholdId();
+  await setPreferLeftoversRow(hid, value);
 }
 
 export async function shareGroceryAction(): Promise<string | null> {

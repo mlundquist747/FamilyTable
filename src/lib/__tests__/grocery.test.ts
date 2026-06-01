@@ -100,6 +100,38 @@ describe("buildGroceryList", () => {
     expect(Number.isInteger(onion!.quantity)).toBe(true);
   });
 
+  it("skips leftover nights and batch-scales cooked meals by cooksFor", () => {
+    const members = [member("medium"), member("medium"), member("medium"), member("medium")];
+    const meals: Meal[] = [
+      {
+        ...baseMeal,
+        id: "1",
+        title: "Chili",
+        baseServings: 4,
+        cooksFor: 2, // cook once, eat two nights -> buy double
+        ingredients: [
+          { name: "ground beans", quantity: 2, unit: "can", section: "Canned & Jarred" },
+        ],
+      },
+      {
+        ...baseMeal,
+        id: "2",
+        title: "Leftovers: Chili",
+        baseServings: 4,
+        leftover: true,
+        cooksFor: 0,
+        ingredients: [
+          // Even if present, a leftover night must not add groceries.
+          { name: "ground beans", quantity: 99, unit: "can", section: "Canned & Jarred" },
+        ],
+      },
+    ];
+    const list = buildGroceryList({ meals, members });
+    expect(list).toHaveLength(1);
+    expect(list[0].name).toBe("Ground Beans");
+    expect(list[0].quantity).toBe(4); // 2 cans x cooksFor 2, leftover ignored
+  });
+
   it("scales quantities by household servings vs base servings", () => {
     // 8 servings of medium vs baseServings 4 => scale 2x
     const members = Array.from({ length: 8 }, () => member("medium"));

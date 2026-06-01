@@ -62,8 +62,13 @@ export function buildGroceryList({
   const merged = new Map<string, GroceryItem>();
 
   for (const meal of meals) {
+    // Leftover nights reuse an earlier cooked meal — they add no new groceries.
+    if (meal.leftover) continue;
+
     const base = meal.baseServings > 0 ? meal.baseServings : servings;
-    const scale = servings / base;
+    // A batch-cooked meal feeds `cooksFor` nights, so buy that many times over.
+    const nights = meal.cooksFor && meal.cooksFor > 0 ? meal.cooksFor : 1;
+    const scale = (servings * nights) / base;
 
     for (const ing of meal.ingredients) {
       const key = mergeKey(ing.name, ing.unit);

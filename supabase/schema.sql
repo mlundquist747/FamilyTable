@@ -11,11 +11,15 @@ create extension if not exists "pgcrypto";
 
 -- ── Households ───────────────────────────────────────────────────────────────
 create table if not exists households (
-  id          uuid primary key default gen_random_uuid(),
-  name        text not null,
-  owner_id    uuid not null references auth.users (id) on delete cascade,
-  created_at  timestamptz not null default now()
+  id                uuid primary key default gen_random_uuid(),
+  name              text not null,
+  owner_id          uuid not null references auth.users (id) on delete cascade,
+  prefer_leftovers  boolean not null default false,
+  created_at        timestamptz not null default now()
 );
+-- For existing projects, add the column if it's missing:
+alter table households
+  add column if not exists prefer_leftovers boolean not null default false;
 create index if not exists households_owner_idx on households (owner_id);
 
 -- ── Family members ───────────────────────────────────────────────────────────

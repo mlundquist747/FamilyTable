@@ -34,3 +34,7 @@ export function SimpleBadge() {
     <span className="chip bg-amber-100 text-amber-700">⚡ Simple night</span>
   );
 }
+
+export function LeftoverBadge() {
+  return <span className="chip bg-sage-100 text-sage-700">♻️ Leftovers</span>;
+}

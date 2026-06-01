@@ -10,11 +10,18 @@ import {
   Meal,
   MealSafetyReport,
 } from "@/lib/types";
-import { SafetyBadge, SimpleBadge } from "@/components/Badges";
+import { LeftoverBadge, SafetyBadge, SimpleBadge } from "@/components/Badges";
 
 export default function PlanPage() {
-  const { members, meals, busyNights, setMeals, setMealRecipe, toggleBusyNight } =
-    useStore();
+  const {
+    members,
+    meals,
+    busyNights,
+    preferLeftovers,
+    setMeals,
+    setMealRecipe,
+    toggleBusyNight,
+  } = useStore();
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [demoNote, setDemoNote] = useState(false);
@@ -36,7 +43,13 @@ export default function PlanPage() {
       const res = await fetch("/api/plan/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ members, busyNights, weekStart, days: 7 }),
+        body: JSON.stringify({
+          members,
+          busyNights,
+          weekStart,
+          days: 7,
+          preferLeftovers,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -64,6 +77,17 @@ export default function PlanPage() {
           {generating ? "Planning…" : "✨ Generate"}
         </button>
       </div>
+
+      {preferLeftovers && (
+        <div className="card p-3 text-xs text-ink/60 flex items-center gap-2">
+          ♻️ Leftovers preference is on — plans cook ~4 nights and repeat the
+          rest. Change it on the{" "}
+          <Link href="/dashboard" className="text-sage-600 font-medium">
+            Home
+          </Link>{" "}
+          tab.
+        </div>
+      )}
 
       {members.length === 0 && (
         <div className="card p-5 text-sm text-ink/60">
@@ -184,8 +208,14 @@ function MealCard({
           {meal.title}
         </h3>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          <SafetyBadge safe={report.safe} />
-          {meal.simple && <SimpleBadge />}
+          {meal.leftover ? (
+            <LeftoverBadge />
+          ) : (
+            <>
+              <SafetyBadge safe={report.safe} />
+              {meal.simple && <SimpleBadge />}
+            </>
+          )}
         </div>
         <p className="mt-2.5 text-sm text-ink/70 leading-relaxed">
           {meal.description}
@@ -211,16 +241,27 @@ function MealCard({
           </div>
         )}
 
-        <details
-          className="mt-3 group"
-          onToggle={(e) => {
-            if ((e.currentTarget as HTMLDetailsElement).open) ensureRecipe();
-          }}
-        >
-          <summary className="cursor-pointer text-sm font-medium text-sage-600 list-none">
-            <span className="group-open:hidden">Show more ▾</span>
-            <span className="hidden group-open:inline">Show less ▴</span>
-          </summary>
+        {meal.leftover ? (
+          <p className="mt-3 text-sm text-sage-700">
+            ♻️ Reheat and enjoy{" "}
+            {meal.leftoverOf ? (
+              <span className="font-medium">{meal.leftoverOf}</span>
+            ) : (
+              "an earlier dinner"
+            )}
+            . No cooking — and nothing extra to buy.
+          </p>
+        ) : (
+          <details
+            className="mt-3 group"
+            onToggle={(e) => {
+              if ((e.currentTarget as HTMLDetailsElement).open) ensureRecipe();
+            }}
+          >
+            <summary className="cursor-pointer text-sm font-medium text-sage-600 list-none">
+              <span className="group-open:hidden">Show more ▾</span>
+              <span className="hidden group-open:inline">Show less ▴</span>
+            </summary>
 
           <h4 className="mt-3 text-xs font-semibold uppercase tracking-wide text-ink/45">
             Ingredients
@@ -270,10 +311,11 @@ function MealCard({
             </button>
           )}
 
-          {meal.notes && (
-            <p className="mt-3 text-xs text-ink/50 italic">{meal.notes}</p>
-          )}
-        </details>
+            {meal.notes && (
+              <p className="mt-3 text-xs text-ink/50 italic">{meal.notes}</p>
+            )}
+          </details>
+        )}
       </div>
     </div>
   );
